@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>AQI App</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI';
+  background: #0f2027;
+  color: white;
+}
+
+/* HEADER */
+.header {
+  text-align: center;
+  padding: 12px;
+  font-size: 18px;
+  background: #1c2b36;
+}
+
+/* SCREEN */
+.screen {
+  display: none;
+  padding-bottom: 60px;
+}
+
+.active {
+  display: block;
+}
+
+/* CARDS */
+.container {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 10px;
+  padding: 10px;
+}
+
+.card {
+  background: rgba(255,255,255,0.1);
+  padding: 12px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.value {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* AQI */
+.aqi-box {
+  text-align: center;
+  font-size: 22px;
+  margin: 10px;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+/* WARNING */
+.warning-box {
+  display: none;
+  margin: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+/* GRAPH CONTAINER */
+.graph-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 10px;
+}
+
+/* GRAPH CARD */
+.graph-card {
+  background: rgba(255,255,255,0.08);
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.graph-card h3 {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+/* GRAPH */
+canvas {
+  width: 100% !important;
+  height: 180px !important;
+  background: #ffffff;
+  border-radius: 8px;
+}
+
+/* NAV */
+.navbar {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  background: #1c2b36;
+}
+
+.nav-btn {
+  flex: 1;
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.nav-btn.active {
+  background: #2c5364;
+}
+
+/* DESKTOP */
+@media (min-width: 768px) {
+  .graph-container {
+    max-width: 800px;
+    margin: auto;
+  }
+
+  canvas {
+    height: 220px !important;
+  }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">🌍 AQI Monitor</div>
+
+<!-- HOME -->
+<div id="home" class="screen active">
+
+<div class="container">
+  <div class="card">Temp<div id="temp" class="value">--</div></div>
+  <div class="card">MQ135<div id="mq135" class="value">--</div></div>
+  <div class="card">MQ7<div id="mq7" class="value">--</div></div>
+  <div class="card">PM2.5<div id="pm25" class="value">--</div></div>
+</div>
+
+<div class="aqi-box" id="aqiBox">
+  AQI: <span id="aqi">--</span>
+</div>
+
+<div id="warningBox" class="warning-box"></div>
+
+</div>
+
+<!-- GRAPH -->
+<div id="graph" class="screen">
+
+<div class="graph-container">
+
+<div class="graph-card">
+  <h3>AQI</h3>
+  <canvas id="aqiChart"></canvas>
+</div>
+
+<div class="graph-card">
+  <h3>Temperature</h3>
+  <canvas id="tempChart"></canvas>
+</div>
+
+<div class="graph-card">
+  <h3>MQ Sensors</h3>
+  <canvas id="mqChart"></canvas>
+</div>
+
+<div class="graph-card">
+  <h3>PM2.5</h3>
+  <canvas id="pmChart"></canvas>
+</div>
+
+</div>
+
+</div>
+
+<!-- NAV -->
+<div class="navbar">
+  <div class="nav-btn active" onclick="showScreen('home', this)">🏠 Home</div>
+  <div class="nav-btn" onclick="showScreen('graph', this)">📊 Graph</div>
+</div>
+
+<script>
+
+// SWITCH SCREEN
+function showScreen(id, btn){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+
+  document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+// COLOR
+function getColor(aqi){
+  if(aqi<=50) return "green";
+  if(aqi<=100) return "yellow";
+  if(aqi<=200) return "orange";
+  return "red";
+}
+
+// HEALTH
+function getHealth(aqi){
+
+  if(aqi <= 50)
+    return ["Good 😊", "Air quality is excellent. Enjoy outdoor activities."];
+
+  else if(aqi <= 100)
+    return ["Moderate 😐", "Air is acceptable. Sensitive individuals should take care."];
+
+  else if(aqi <= 200)
+    return ["Unhealthy 😷", "Everyone may experience discomfort. Limit outdoor exposure."];
+
+  else if(aqi <= 300)
+    return ["Very Unhealthy 🤢", "Health alert! Avoid outdoor activities and wear a mask."];
+
+  else
+    return ["Hazardous ☠️", "Serious health risk. Stay indoors and use air purification."];
+}
+
+// CHART OPTIONS
+function createChart(id,label){
+  return new Chart(document.getElementById(id),{
+    type:'line',
+    data:{labels:[],datasets:[{label:label,data:[],borderWidth:2,tension:0.4}]},
+    options:{responsive:true,maintainAspectRatio:false}
+  });
+}
+
+let aqiChart=createChart("aqiChart","AQI");
+let tempChart=createChart("tempChart","Temp");
+
+let mqChart=new Chart(document.getElementById("mqChart"),{
+  type:'line',
+  data:{
+    labels:[],
+    datasets:[
+      {label:'MQ135',data:[],borderWidth:2},
+      {label:'MQ7',data:[],borderWidth:2}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false}
+});
+
+let pmChart=createChart("pmChart","PM2.5");
+
+// FETCH DATA
+async function fetchData(){
+  try{
+    let res=await fetch("http://192.168.29.224:5000/data");
+    let data=await res.json();
+
+    if(!data.temperature) return;
+
+    document.getElementById("temp").innerText=data.temperature.toFixed(1);
+    document.getElementById("mq135").innerText=data.mq135;
+    document.getElementById("mq7").innerText=data.mq7;
+    document.getElementById("pm25").innerText=data.pm25.toFixed(1);
+    document.getElementById("aqi").innerText=data.aqi;
+
+    document.getElementById("aqiBox").style.background=getColor(data.aqi);
+
+    let [status,msg]=getHealth(data.aqi);
+    let box=document.getElementById("warningBox");
+
+    box.style.display="block";
+    box.innerHTML=`<b>${status}</b><br>${msg}`;
+
+    let time=new Date().toLocaleTimeString();
+
+    aqiChart.data.labels.push(time);
+    aqiChart.data.datasets[0].data.push(data.aqi);
+
+    tempChart.data.labels.push(time);
+    tempChart.data.datasets[0].data.push(data.temperature);
+
+    mqChart.data.labels.push(time);
+    mqChart.data.datasets[0].data.push(data.mq135);
+    mqChart.data.datasets[1].data.push(data.mq7);
+
+    pmChart.data.labels.push(time);
+    pmChart.data.datasets[0].data.push(data.pm25);
+
+    [aqiChart,tempChart,mqChart,pmChart].forEach(c=>{
+      if(c.data.labels.length>8){
+        c.data.labels.shift();
+        c.data.datasets.forEach(d=>d.data.shift());
+      }
+      c.update();
+    });
+
+  }catch(err){
+    console.log(err);
+  }
+}
+
+setInterval(fetchData,2000);
+fetchData();
+
+</script>
+
+</body>
+</html>
