@@ -173,5 +173,9 @@ This project demonstrates the integration of **IoT, Machine Learning, and Web Te
 
 ## 📸 Screenshots
 
+<img width="1919" height="868" alt="Screenshot 2026-03-26 210249" src="https://github.com/user-attachments/assets/0e9e85d6-f0e0-4190-a42f-8e6a1cdb588f" />
+<img width="1919" height="864" alt="Screenshot 2026-03-26 210429" src="https://github.com/user-attachments/assets/0b587d06-59f5-477a-ba36-cae8d6f93e40" />
+<img width="1919" height="793" alt="Screenshot 2026-03-26 210452" src="https://github.com/user-attachments/assets/ea7e91ad-1fde-44c9-a5ef-49f32f220d11" />
+
 
 ---
