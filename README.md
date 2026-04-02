@@ -88,7 +88,7 @@ ESP32 Sensors → Flask Backend → ML Model → Dashboard UI → User (Mobile/D
 AQI_Project/
 │
 ├── server.py              # Flask backend
-├── index.html            # Dashboard UI
+├── Dashboard.html            # Dashboard UI
 ├── aqi_xgboost_model.pkl # ML model
 ├── sensors_code.ino      # ESP32 code
 ├── requirements.txt
