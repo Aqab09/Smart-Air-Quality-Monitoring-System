@@ -3,17 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>AQI App</title>
+<title>AQI Monitor</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-
 body {
   margin: 0;
   font-family: 'Segoe UI';
-  background: #0f2027;
+  background: linear-gradient(to right, #1e3c72, #2a5298);
   color: white;
 }
 
@@ -22,18 +20,12 @@ body {
   text-align: center;
   padding: 12px;
   font-size: 18px;
-  background: #1c2b36;
+  background: linear-gradient(to right, #1e3c72, #2a5298);
 }
 
 /* SCREEN */
-.screen {
-  display: none;
-  padding-bottom: 60px;
-}
-
-.active {
-  display: block;
-}
+.screen { display: none; padding-bottom: 60px; }
+.active { display: block; }
 
 /* CARDS */
 .container {
@@ -44,23 +36,26 @@ body {
 }
 
 .card {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(10px);
   padding: 12px;
   border-radius: 12px;
   text-align: center;
 }
+
+
 
 .value {
   font-size: 18px;
   font-weight: bold;
 }
 
-/* AQI */
+/* AQI BOX */
 .aqi-box {
   text-align: center;
   font-size: 22px;
   margin: 10px;
-  padding: 10px;
+  padding: 12px;
   border-radius: 10px;
 }
 
@@ -73,7 +68,7 @@ body {
   text-align: center;
 }
 
-/* GRAPH CONTAINER */
+/* GRAPH */
 .graph-container {
   display: flex;
   flex-direction: column;
@@ -81,24 +76,17 @@ body {
   padding: 10px;
 }
 
-/* GRAPH CARD */
 .graph-card {
   background: rgba(255,255,255,0.08);
   padding: 10px;
   border-radius: 12px;
 }
 
-.graph-card h3 {
-  margin: 5px 0;
-  font-size: 14px;
-}
-
-/* GRAPH */
 canvas {
   width: 100% !important;
-  height: 180px !important;
-  background: #ffffff;
-  border-radius: 8px;
+  height: 220px !important;
+  background: #111;
+  border-radius: 10px;
 }
 
 /* NAV */
@@ -107,7 +95,7 @@ canvas {
   bottom: 0;
   width: 100%;
   display: flex;
-  background: #1c2b36;
+  background: linear-gradient(to right, #56ccf2, #2f80ed);
 }
 
 .nav-btn {
@@ -118,21 +106,8 @@ canvas {
 }
 
 .nav-btn.active {
-  background: #2c5364;
+  background: linear-gradient(to right, #56ccf2, #2f80ed);
 }
-
-/* DESKTOP */
-@media (min-width: 768px) {
-  .graph-container {
-    max-width: 800px;
-    margin: auto;
-  }
-
-  canvas {
-    height: 220px !important;
-  }
-}
-
 </style>
 </head>
 
@@ -144,10 +119,10 @@ canvas {
 <div id="home" class="screen active">
 
 <div class="container">
-  <div class="card">Temp<div id="temp" class="value">--</div></div>
-  <div class="card">MQ135<div id="mq135" class="value">--</div></div>
-  <div class="card">MQ7<div id="mq7" class="value">--</div></div>
-  <div class="card">PM2.5<div id="pm25" class="value">--</div></div>
+  <div class="card">Temp (°C)<div id="temp" class="value">--</div></div>
+<div class="card">ALCOHOL,NH3,BENEZENE (ppm)<div id="mq135" class="value">--</div></div>
+<div class="card">CO (ppm)<div id="mq7" class="value">--</div></div>
+<div class="card">PM2.5 (µg/m³)<div id="pm25" class="value">--</div></div>
 </div>
 
 <div class="aqi-box" id="aqiBox">
@@ -160,31 +135,25 @@ canvas {
 
 <!-- GRAPH -->
 <div id="graph" class="screen">
-
 <div class="graph-container">
 
 <div class="graph-card">
-  <h3>AQI</h3>
   <canvas id="aqiChart"></canvas>
 </div>
 
 <div class="graph-card">
-  <h3>Temperature</h3>
   <canvas id="tempChart"></canvas>
 </div>
 
 <div class="graph-card">
-  <h3>MQ Sensors</h3>
   <canvas id="mqChart"></canvas>
 </div>
 
 <div class="graph-card">
-  <h3>PM2.5</h3>
   <canvas id="pmChart"></canvas>
 </div>
 
 </div>
-
 </div>
 
 <!-- NAV -->
@@ -195,6 +164,8 @@ canvas {
 
 <script>
 
+const BASE_URL = "YOUR_SERVER_IP"; //Add your IP address of the server running
+
 // SWITCH SCREEN
 function showScreen(id, btn){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
@@ -204,98 +175,137 @@ function showScreen(id, btn){
   btn.classList.add("active");
 }
 
-// COLOR
+// AQI COLOR
 function getColor(aqi){
-  if(aqi<=50) return "green";
-  if(aqi<=100) return "yellow";
-  if(aqi<=200) return "orange";
-  return "red";
+  if(aqi<=50) return "#22c55e";
+  if(aqi<=100) return "#eab308";
+  if(aqi<=200) return "#f97316";
+  return "#ef4444";
 }
 
-// HEALTH
+// HEALTH MESSAGE
 function getHealth(aqi){
-
-  if(aqi <= 50)
-    return ["Good 😊", "Air quality is excellent. Enjoy outdoor activities."];
-
-  else if(aqi <= 100)
-    return ["Moderate 😐", "Air is acceptable. Sensitive individuals should take care."];
-
-  else if(aqi <= 200)
-    return ["Unhealthy 😷", "Everyone may experience discomfort. Limit outdoor exposure."];
-
-  else if(aqi <= 300)
-    return ["Very Unhealthy 🤢", "Health alert! Avoid outdoor activities and wear a mask."];
-
-  else
-    return ["Hazardous ☠️", "Serious health risk. Stay indoors and use air purification."];
+  if(aqi<=50) return ["Good 😊","Air quality is excellent"];
+  if(aqi<=100) return ["Moderate 😐","Take care"];
+  if(aqi<=200) return ["Unhealthy 😷","Limit outdoor exposure"];
+  if(aqi<=300) return ["Very Unhealthy 🤢","Avoid outdoor"];
+  return ["Hazardous ☠️","Stay indoors"];
 }
 
-// CHART OPTIONS
-function createChart(id,label){
-  return new Chart(document.getElementById(id),{
-    type:'line',
-    data:{labels:[],datasets:[{label:label,data:[],borderWidth:2,tension:0.4}]},
-    options:{responsive:true,maintainAspectRatio:false}
+// CREATE CHART
+function createChart(id, label, color){
+  return new Chart(document.getElementById(id), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: label,
+        data: [],
+        borderColor: color,
+        borderWidth: 3,
+        tension: 0.4,
+        pointRadius: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: "white" } }
+      },
+      scales: {
+        x: {
+          ticks: { color: "white" },
+          grid: { color: "rgba(255,255,255,0.1)" }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: "white" },
+          grid: { color: "rgba(255,255,255,0.1)" }
+        }
+      }
+    }
   });
 }
 
-let aqiChart=createChart("aqiChart","AQI");
-let tempChart=createChart("tempChart","Temp");
+// INIT CHARTS
+let aqiChart = createChart("aqiChart","AQI","#ef4444");
+let tempChart = createChart("tempChart","Temperature","#3b82f6");
 
-let mqChart=new Chart(document.getElementById("mqChart"),{
+let mqChart = new Chart(document.getElementById("mqChart"),{
   type:'line',
   data:{
     labels:[],
     datasets:[
-      {label:'MQ135',data:[],borderWidth:2},
-      {label:'MQ7',data:[],borderWidth:2}
+      {label:"NH3",data:[],borderColor:"#22c55e",borderWidth:3},
+      {label:"CO",data:[],borderColor:"#eab308",borderWidth:3}
     ]
   },
-  options:{responsive:true,maintainAspectRatio:false}
+  options:{
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{ legend:{labels:{color:"white"}} },
+    scales:{
+      x:{ticks:{color:"white"}},
+      y:{beginAtZero:true,ticks:{color:"white"}}
+    }
+  }
 });
 
-let pmChart=createChart("pmChart","PM2.5");
+let pmChart = createChart("pmChart","PM2.5","#f97316");
 
 // FETCH DATA
 async function fetchData(){
   try{
-    let res=await fetch("http://192.168.29.224:5000/data");
-    let data=await res.json();
+    let res = await fetch(BASE_URL + "/data");
+    let data = await res.json();
 
-    if(!data.temperature) return;
+    if(data.pm25 === undefined) return;
 
-    document.getElementById("temp").innerText=data.temperature.toFixed(1);
-    document.getElementById("mq135").innerText=data.mq135;
-    document.getElementById("mq7").innerText=data.mq7;
-    document.getElementById("pm25").innerText=data.pm25.toFixed(1);
-    document.getElementById("aqi").innerText=data.aqi;
+    let pred = await fetch(BASE_URL + "/predict", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(data)
+    });
 
-    document.getElementById("aqiBox").style.background=getColor(data.aqi);
+    let result = await pred.json();
+    let aqi = Math.round(result.AQI);
 
-    let [status,msg]=getHealth(data.aqi);
+    // UI UPDATE
+    document.getElementById("temp").innerText = data.temperature?.toFixed(1) || "--";
+    document.getElementById("mq135").innerText = data.nh3.toFixed(2);
+    document.getElementById("mq7").innerText = data.co.toFixed(2);
+    document.getElementById("pm25").innerText = data.pm25.toFixed(1);
+    document.getElementById("aqi").innerText = aqi;
+
+    let aqiBox = document.getElementById("aqiBox");
+    let color = getColor(aqi);
+    aqiBox.style.background = color;
+    aqiBox.style.color = (aqi <= 100) ? "black" : "white";
+
+    let [status,msg]=getHealth(aqi);
     let box=document.getElementById("warningBox");
-
     box.style.display="block";
     box.innerHTML=`<b>${status}</b><br>${msg}`;
 
-    let time=new Date().toLocaleTimeString();
+    let time = new Date().toLocaleTimeString();
 
+    // GRAPH UPDATE
     aqiChart.data.labels.push(time);
-    aqiChart.data.datasets[0].data.push(data.aqi);
+    aqiChart.data.datasets[0].data.push(aqi);
 
     tempChart.data.labels.push(time);
-    tempChart.data.datasets[0].data.push(data.temperature);
+    tempChart.data.datasets[0].data.push(data.temperature || null);
 
     mqChart.data.labels.push(time);
-    mqChart.data.datasets[0].data.push(data.mq135);
-    mqChart.data.datasets[1].data.push(data.mq7);
+    mqChart.data.datasets[0].data.push(data.nh3 || null);
+    mqChart.data.datasets[1].data.push(data.co || null);
 
     pmChart.data.labels.push(time);
-    pmChart.data.datasets[0].data.push(data.pm25);
+    pmChart.data.datasets[0].data.push(data.pm25 || null);
 
     [aqiChart,tempChart,mqChart,pmChart].forEach(c=>{
-      if(c.data.labels.length>8){
+      if(c.data.labels.length>10){
         c.data.labels.shift();
         c.data.datasets.forEach(d=>d.data.shift());
       }
@@ -303,11 +313,11 @@ async function fetchData(){
     });
 
   }catch(err){
-    console.log(err);
+    console.log("ERROR:", err);
   }
 }
 
-setInterval(fetchData,2000);
+setInterval(fetchData,3000);
 fetchData();
 
 </script>
